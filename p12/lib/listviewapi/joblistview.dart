@@ -1,72 +1,57 @@
-import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:p12/listviewapi/job.dart';
 
-class JobsListView extends StatelessWidget {
-  const JobsListView({Key? key}) : super(key: key);
+class UsersListView extends StatelessWidget {
+  const UsersListView({Key? key}) : super(key: key);
+
+  Future<List<User>> _fetchUsers() async {
+    var uri = Uri.parse('https://jsonplaceholder.typicode.com/users');
+    final response = await http.get(uri);
+    if (response.statusCode == 200) {
+      List jsonResponse = json.decode(response.body);
+      return jsonResponse.map((user) => User.fromJson(user)).toList();
+    } else {
+      throw Exception('Failed to load users from API');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<Job>>(
-      future: _fetchJobs(),
+    return FutureBuilder<List<User>>(
+      future: _fetchUsers(),
       builder: (context, snapshot) {
         if (snapshot.hasData) {
-          List<Job>? data = snapshot.data;
-          return _jobsListView(context, data!);
+          List<User>? data = snapshot.data;
+          return ListView.builder(
+            itemCount: data!.length,
+            itemBuilder: (context, index) {
+              return ListTile(
+                title: Text(
+                  data[index].name,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w500,
+                    fontSize: 20,
+                  ),
+                ),
+                subtitle: Text(data[index].email),
+                trailing: Text(data[index].address),
+                leading: Icon(Icons.person, color: Colors.blue[400]),
+                onTap: () {
+                  final snackBar = SnackBar(
+                    duration: const Duration(seconds: 1),
+                    content: Text("Anda memilih ${data[index].name}!"),
+                  );
+                  ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                },
+              );
+            },
+          );
         } else if (snapshot.hasError) {
           return Center(child: Text("${snapshot.error}"));
         }
         return const Center(child: CircularProgressIndicator());
-      },
-    );
-  }
-
-  Future<List<Job>> _fetchJobs() async {
-    var uri = Uri.parse('https://mock-json-service.glitch.me');
-    final response = await http.get(uri);
-    if (response.statusCode == 200) {
-      List jsonResponse = json.decode(response.body);
-      return jsonResponse.map((job) => Job.fromJson(job)).toList();
-    } else {
-      throw Exception('Failed to load jobs from API');
-    }
-  }
-
-  Widget _jobsListView(BuildContext context, List<Job> data) {
-    return ListView.builder(
-      itemCount: data.length,
-      itemBuilder: (context, index) {
-        return _buildTile(
-          context,
-          data[index].position,
-          data[index].company,
-          Icons.work,
-        );
-      },
-    );
-  }
-
-  Widget _buildTile(
-    BuildContext context,
-    String title,
-    String subtitle,
-    IconData icon,
-  ) {
-    return ListTile(
-      title: Text(
-        title,
-        style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 20),
-      ),
-      subtitle: Text(subtitle),
-      leading: Icon(icon, color: Colors.blue[500]),
-      onTap: () {
-        final snackBar = SnackBar(
-          duration: const Duration(seconds: 1),
-          content: Text("Anda memilih $title!"),
-        );
-        ScaffoldMessenger.of(context).showSnackBar(snackBar);
       },
     );
   }
